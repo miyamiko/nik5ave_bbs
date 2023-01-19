@@ -39,7 +39,9 @@ with st.form(key='profile_form'):
         dayd=dayd.rename("日付")
         close_5days=pd.concat([dayd,closer],axis=1)
         close_5days
-        tstr = today.strftime('%Y/%m/%d')
+        # tstr = today.strftime('%Y/%m/%d')
+        #前日の日付抽出
+        tstr=dayd[0].strftime('%Y年%m月%d日')
         old5days=closer.values.tolist()
         old5daysave=round(sum(old5days)/len(old5days),2)
         st.text(tstr+'の5日平均線は'+str(old5daysave))
