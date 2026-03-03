@@ -31,7 +31,8 @@ with st.form(key='profile_form'):
 
         today = date.today()
         ago = today - relativedelta(months=1)
-        data = pdr.get_data_yahoo('^N225',  ago, today) #修正
+        # data = pdr.get_data_yahoo('^N225',  ago, today) #修正
+        data = yf.download('^N225', start=ago, end=today) #2026/3/3修正
         data.to_csv("nikkei.csv")
         close6=data[['Close']]
         close61=close6.iloc[::-1]
