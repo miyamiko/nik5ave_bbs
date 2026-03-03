@@ -1,106 +1,99 @@
 import streamlit as st
 import pandas as pd
-from pandas_datareader import data  as pdr #修正
-# import datetime
-from datetime import date
-from datetime import datetime, timedelta
+import yfinance as yf
+import os
+from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
-import yfinance as yf #追加
-# yf.pdr_override() #追加
-# 例：日経平均（^N215）を取得する場合
-# df = yf.download("^N225", period="1mo")
-# これだけでOK（pdr_overrideも不要になります）
-df = yf.download('^N225', start='2026-01-01')
 
-st.title('日経平均今日の5日線　-　イチゲブログ')
+# --- 初期設定: 必要なCSVファイルがない場合に作成する ---
+def initialize_csv(filename, columns):
+    if not os.path.exists(filename):
+        df = pd.DataFrame(columns=columns)
+        df.to_csv(filename)
+
+initialize_csv("nikkei.csv", ["Date", "Close"])
+initialize_csv("toukou.csv", ["投稿日", "名前", "内容"])
+
+# --- メイン処理 ---
+st.title('日経平均今日の5日線 - イチゲブログ')
 st.caption('日経平均の今日5日線上にくる株価がいくらになるか計算します')
-st.markdown('###### Streamelitやこのサイトの関連情報は')
-link = '[イチゲブログ](https://kikuichige.com/17180/)'
-st.markdown(link, unsafe_allow_html=True)
-# link = '[Yahoo!ファイナンス 日経平均株価](https://finance.yahoo.co.jp/quote/998407.O/history)'
-# st.markdown(link, unsafe_allow_html=True)
+
+st.markdown('###### Streamlitやこのサイトの関連情報は')
+st.markdown('[イチゲブログ](https://kikuichige.com/17180/)', unsafe_allow_html=True)
+
 text='<span style="color:red"><a href="https://finance.yahoo.co.jp/quote/998407.O/history">Yahoo!ファイナンス 日経平均株価時系列</a>でデータを確認してください！</span>'
 st.write(text, unsafe_allow_html=True)
-st.text('5日平均計算式\nx=x1+x2+x3+x4+x　（x:今日の終値=5日平均線　x1～x4：1～4日前の終値）より\nx=(x1+x2+x3+x4)/4になる。つまり4日平均に今日の終値がなれば、その値が今日の終値＝5日線になる。')
+
+st.text('5日平均計算式:\nx = (x1+x2+x3+x4+x_today)/5')
+
 with st.form(key='profile_form'):
-
-    submit_btn=st.form_submit_button('5日線表示')
-    cancel_btn=st.form_submit_button('消す')
+    submit_btn = st.form_submit_button('5日線表示')
     if submit_btn:
-        df1=pd.read_csv("nikkei.csv",index_col=0)
-
         today = date.today()
         ago = today - relativedelta(months=1)
-        # data = pdr.get_data_yahoo('^N225',  ago, today) #修正
-        data = yf.download('^N225', start=ago, end=today) #2026/3/3修正
-        data.to_csv("nikkei.csv")
-        close6=data[['Close']]
-        close61=close6.iloc[::-1]
-        close62=close61[0:5]
-        close62.reset_index(inplace=True)
-        closer=close62['Close'].round(2)
-        dayd=close62['Date'].dt.date
-        closer=closer.rename("終値")
-        dayd=dayd.rename("日付")
-        close_5days=pd.concat([dayd,closer],axis=1)
-        close_5days
-        # tstr = today.strftime('%Y/%m/%d')
-        #前日の日付抽出
-        tstr=dayd[0].strftime('%Y年%m月%d日')
-        old5days=closer.values.tolist()
-        old5daysave=round(sum(old5days)/len(old5days),2)
-        st.text(tstr+'の5日平均線は'+str(old5daysave))
-        old4days=old5days[:4]
-        old4daysave=round(sum(old4days)/len(old4days),2)
-        st.text(tstr+'の4日平均線は'+str(old4daysave))
-        st.text('投資をおこなう際には、当ホームページに掲載されている情報に全面的に依拠し、\n投資判断する事はお控えいただき、必ずご自身の判断でなされるようお願いいたします。')
-st.title('簡易掲示板イチゲブログ')
-st.caption('csvファイルを使って掲示板作ってみました。')
-with st.form(key='keijiban_form'):
-    name=st.text_input('名前')
-    message=st.text_input('メッセージ')
-    st.text('投稿を押したあと表示更新を押してください。')
-    toukou_btn=st.form_submit_button('投稿')
-    hyouji_btn=st.form_submit_button('表示更新')
-    st.markdown('###### 簡易掲示板')
-    # del_no=st.text_input('削除する番号を選んでください')
-    #セレクトボックス
-    df=pd.read_csv("toukou.csv",index_col=0)
-    st.dataframe(df)
-    del_list=df.index.values
-    del_no=st.selectbox(
-            '削除する番号を選んでください',
-            (del_list))
-    # hyouji_btn=st.form_submit_button('削除直後や、セレクトボックスの値がおかしいときは、このボタンを押してください。セレクトボックスの番号がリフレッシュされます。')
-    del_btn=st.form_submit_button('削除')
-    if toukou_btn or hyouji_btn:
-        # df=pd.read_csv("toukou.csv",index_col=0)
-        if toukou_btn: 
-            dt_now = datetime.now()
-            toukoubi=dt_now.strftime('%Y年%m月%d日 %H:%M:%S')
-            columns = [ '投稿日','名前','内容']
-            list = [[toukoubi,name,message
-            ]]
-            df_append = pd.DataFrame(data=list, columns=columns)
-            df1 = pd.concat([df, df_append], ignore_index=True, axis=0)
-            df=df1
-            df.to_csv("toukou.csv")
-            text='<span style="color:blue">表示更新を押してください！</span>'
-            st.write(text, unsafe_allow_html=True)
+        
+        # yfinanceでデータ取得 (auto_adjust=Trueで列名をシンプルにする)
+        data = yf.download('^N225', start=ago, end=today, auto_adjust=True)
+        
+        if not data.empty:
+            data.to_csv("nikkei.csv")
+            
+            # 直近5日分を取得
+            close6 = data[['Close']].iloc[::-1].head(5)
+            close6.reset_index(inplace=True)
+            
+            # 表示用に整形
+            closer = close6['Close'].round(2)
+            dayd = close6['Date'].dt.date
+            
+            # 名前の変更（エラー回避のためname属性を直接変更）
+            closer.name = "終値"
+            dayd.name = "日付"
+            
+            close_5days = pd.concat([dayd, closer], axis=1)
+            st.table(close_5days) # dataframeよりtableの方が見やすい場合があります
+            
+            # 計算処理
+            tstr = dayd.iloc[0].strftime('%Y年%m月%d日')
+            old5days = closer.values.tolist()
+            old5daysave = round(sum(old5days)/len(old5days), 2)
+            
+            st.success(f'{tstr}時点の5日移動平均値: {old5daysave}')
+            
+            old4days = old5days[:4]
+            old4daysave = round(sum(old4days)/len(old4days), 2)
+            st.info(f'直近4日間の平均値: {old4daysave}')
         else:
-            df1=df
-        # df1
-        del_list=df.index.values
-        # del_no=st.selectbox(
-        #         '削除する番号を選んでください',
-        #         (del_list))
-    if del_btn:
-        # st.text('del_no'+del_no)
-        # df=pd.read_csv("toukou.csv",index_col=0)
-        df1=df.drop(del_no, axis=0)
-        # df1
-        df=df1
-        del_list=df.index.values
-        df.to_csv("toukou.csv")
-        text='<span style="color:red">表示更新を押してください！</span>'
-        st.write(text, unsafe_allow_html=True)
+            st.error("データの取得に失敗しました。時間をおいて試してください。")
+
+# --- 掲示板セクション ---
+st.divider()
+st.title('簡易掲示板')
+
+# 最新の投稿を読み込み
+df_board = pd.read_csv("toukou.csv", index_col=0)
+
+with st.form(key='keijiban_form'):
+    name = st.text_input('名前')
+    message = st.text_area('メッセージ') # 長文入力に対応
+    toukou_btn = st.form_submit_button('投稿')
+    
+    if toukou_btn and name and message:
+        dt_now = datetime.now()
+        toukoubi = dt_now.strftime('%Y年%m月%d日 %H:%M:%S')
+        new_data = pd.DataFrame([[toukoubi, name, message]], columns=['投稿日', '名前', '内容'])
+        df_board = pd.concat([df_board, new_data], ignore_index=True)
+        df_board.to_csv("toukou.csv")
+        st.success("投稿しました！")
+        st.rerun() # 画面を更新して最新の状態を表示
+
+st.dataframe(df_board, use_container_width=True)
+
+# 削除機能
+if not df_board.empty:
+    del_no = st.selectbox('削除する番号を選んでください', df_board.index)
+    if st.button('選択した投稿を削除'):
+        df_board = df_board.drop(del_no, axis=0)
+        df_board.to_csv("toukou.csv")
+        st.warning(f"番号 {del_no} を削除しました。")
+        st.rerun()
