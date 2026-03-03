@@ -43,7 +43,8 @@ with st.form(key='profile_form'):
             close6.reset_index(inplace=True)
             
             # 表示用に整形
-            closer = close6['Close'].round(2)
+            # closer = close6['Close'].round(2)
+            closer = close6['Close'].iloc[:, 0].round(2) if isinstance(close6['Close'], pd.DataFrame) else close6['Close'].round(2)
             dayd = close6['Date'].dt.date
             
             # 名前の変更（エラー回避のためname属性を直接変更）
