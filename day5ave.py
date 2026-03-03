@@ -6,7 +6,9 @@ from datetime import date
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import yfinance as yf #追加
-yf.pdr_override() #追加
+# yf.pdr_override() #追加
+# 例：日経平均（^N215）を取得する場合
+df = yf.download("^N225", period="1mo")
 
 st.title('日経平均今日の5日線　-　イチゲブログ')
 st.caption('日経平均の今日5日線上にくる株価がいくらになるか計算します')
